@@ -8,6 +8,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 BASE_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = BASE_DIR.parent
 
 
 def find_file(name: str) -> Path:
@@ -54,6 +55,9 @@ class ClientData(BaseModel):
 
 @app.get("/", include_in_schema=False)
 def home():
+    index_path = PROJECT_ROOT / "index.html"
+    if index_path.exists():
+        return FileResponse(index_path)
     return FileResponse(BASE_DIR / "index.html")
 
 

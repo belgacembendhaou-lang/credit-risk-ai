@@ -1,14 +1,17 @@
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from pathlib import Path
 from pydantic import BaseModel
 import pandas as pd
 import joblib
 
 # Charger le modèle et les colonnes une seule fois, au démarrage du serveur
-model = joblib.load('model.pkl')
-columns = joblib.load('columns.pkl')
+BASE_DIR = Path(__file__).resolve().parent
+model = joblib.load(BASE_DIR / 'model.pkl')
+columns = joblib.load(BASE_DIR / 'columns.pkl')
 
-app = FastAPI(title="Credit Risk API")
+app = FastAPI(title="Credit Risk API", docs_url=None, redoc_url=None)  # /docs désactivé
 app.add_middleware(
        CORSMiddleware,
        allow_origins=["*"],
@@ -38,14 +41,19 @@ class ClientData(BaseModel):
     telephone: str
     foreign_worker: str
 
-@app.get("/")
+@app.get("/", include_in_schema=False)
 def home():
-    return {"message": "API Credit Risk - en ligne !"}
+    # La racine ouvre la page HTML
+    return FileResponse(BASE_DIR / "static" / "index.html")
+
+@app.get("/health", include_in_schema=False)
+def health():
+    return {"status": "ok"}
 
 @app.post("/predict")
 def predict(client: ClientData):
     # 1. Transformer les données reçues en DataFrame (une seule ligne)
-    input_df = pd.DataFrame([client.dict()])
+    input_df = pd.DataFrame([client.model_dump()])
 
     # 2. Appliquer le même One-Hot Encoding qu'à l'entraînement
     input_encoded = pd.get_dummies(input_df)
